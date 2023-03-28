@@ -155,8 +155,9 @@ class Application(Frame):
 
     # 扫描子域名模块
     def zym_check(self, url, result_queue):
+        result_queue.put('开始扫描网站子域名！')
         urls = url.replace('www', '')
-        for zym_data in open("D:/pythonCrawler/fina/sub11.txt", encoding='utf-8'):
+        for zym_data in open("Ma/sub11.txt", encoding='utf-8'):
             zym_data = zym_data.replace('\n', '')
             url = zym_data + urls
             try:
@@ -185,8 +186,9 @@ class Application(Frame):
 
     # 扫描api模块
     def api_check(self, url, result_queue):
+        result_queue.put('开始扫描网站api模块！')
         api_list = []
-        for api_data in open(r'D:\pythonCrawler\fina\api.txt', encoding='utf-8'):
+        for api_data in open(r'Ma/api.txt', encoding='utf-8'):
             api_data = api_data.replace('\n', '')
             Url = self.entry01.get()
             url = 'https://' + Url + api_data
@@ -195,7 +197,7 @@ class Application(Frame):
             if r.status_code == 200:
                 status = '该网址存在'
                 result_queue.put(url + ' ' + status)
-                with open('fina/api9.csv', 'w', encoding='gbk') as f:
+                with open('Ma/api9.csv', 'w', encoding='gbk') as f:
                     for line in api_list:
                         f.write(line.strip() + '\n')
             else:
