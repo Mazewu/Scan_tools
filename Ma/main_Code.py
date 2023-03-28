@@ -6,6 +6,8 @@ import threading
 import requests
 from tkinter import *
 from tkinter import messagebox
+
+import urllib.request
 import database
 
 
@@ -55,6 +57,9 @@ class Application(Frame):
         self.bt04 = Button(self.button_frame, text="数据库识别", width=10, command=self.scan_database)
         self.bt04.pack(side="top", padx=10, pady=10)
 
+        self.bt05 = Button(self.button_frame, text="服务器识别", width=10, command=self.scan_server)
+        self.bt05.pack(side="top", padx=10, pady=10)
+
         # 文本框和滚动条
         self.text_frame = Frame(self.main_frame)
         self.text_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
@@ -76,7 +81,7 @@ class Application(Frame):
         self.result_queue_zym = queue.Queue()
         self.result_queue_api = queue.Queue()
         self.result_queue_database = queue.Queue()
-
+        self.result_queque_server = queue.Queue()
         # 端口扫描需要的数据
         # 常用端口
         self.PORT_1 = {80: "HTTP", 443: "HTTPS", 21: "FTP", 22: "SSH", 23: "TELNET", 25: "SMTP", 110: "POP3",
@@ -102,7 +107,7 @@ class Application(Frame):
         self.q = queue.Queue()
         self.ip = url
         if self.var01.get() == 1:
-            result_queue.put("开始扫描常用端口！")
+            result_queue.put("开始扫描常用端口...")
             for port in self.PORT_1.keys():
                 self.q.put(port)  # 队尾插入
             while not self.q.empty():
@@ -117,7 +122,7 @@ class Application(Frame):
                 finally:
                     s.close()
         if self.var02.get() == 1:
-            result_queue.put("开始扫描非常用端口！")
+            result_queue.put("开始扫描非常用端口...")
             for port in self.PORT_2.keys():
                 self.q.put(port)  # 队尾插入
             while not self.q.empty():
@@ -155,7 +160,7 @@ class Application(Frame):
 
     # 扫描子域名模块
     def zym_check(self, url, result_queue):
-        result_queue.put('开始扫描网站子域名！')
+        result_queue.put('开始扫描网站子域名...')
         urls = url.replace('www', '')
         for zym_data in open("Ma/sub11.txt", encoding='utf-8'):
             zym_data = zym_data.replace('\n', '')
@@ -186,7 +191,7 @@ class Application(Frame):
 
     # 扫描api模块
     def api_check(self, url, result_queue):
-        result_queue.put('开始扫描网站api模块！')
+        result_queue.put('开始扫描网站api模块...')
         api_list = []
         for api_data in open(r'Ma/api.txt', encoding='utf-8'):
             api_data = api_data.replace('\n', '')
@@ -226,7 +231,7 @@ class Application(Frame):
         # 解析网址
         ext = database.tldextract.extract(url)
         host = database.get_host(url)
-        result_queque.put("开始识别网站数据库！")
+        result_queque.put("开始识别网站数据库...")
         # 尝试连接到MySQL数据库
         db_type = database.try_mysql(host, "root", "", ext.domain)
         if db_type:
@@ -263,6 +268,33 @@ class Application(Frame):
             while True:
                 try:
                     result = self.result_queue_database.get(timeout=0.1)
+                except queue.Empty:
+                    if not t_scan.is_alive():
+                        break
+                else:
+
+                    self.w1.insert('end', result + '\n')
+
+        t_process = threading.Thread(target=process_result)
+        t_process.start()
+
+    # 扫描网站服务器模块
+    def server_check(self, url, result_queque):
+        result_queque.put(f"开始识别网站server...")
+        if not url.startswith("http"):
+            url = "http://" + url
+        file = urllib.request.urlopen(url)
+        result_queque.put(f"网站server 为：{file.info()['Server']}")
+        result_queque.put(f"网站server识别完毕！")
+
+    def scan_server(self):
+        t_scan = threading.Thread(target=self.server_check, args=(self.entry01.get(), self.result_queque_server))
+        t_scan.start()
+
+        def process_result():
+            while True:
+                try:
+                    result = self.result_queque_server.get(timeout=0.1)
                 except queue.Empty:
                     if not t_scan.is_alive():
                         break
