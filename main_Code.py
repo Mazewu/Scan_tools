@@ -6,6 +6,7 @@ import threading
 import requests
 from tkinter import *
 from tkinter import messagebox
+import database
 
 
 class Application(Frame):
@@ -19,39 +20,47 @@ class Application(Frame):
     # 创建窗口
     def creatWidget(self):
 
-        # 创建标签
-        self.url_label = Label(root, text='请输入网站')
-        self.url_label.pack()
+        # 创建主Frame
+        self.main_frame = Frame(root)
+        self.main_frame.pack(padx=10, pady=10, fill="both", expand=True)
 
-        # 创建输入框
-        self.entry01 = Entry(root, width=40)
-        self.entry01.pack(padx=10, pady=10)
+        # 标签和输入框
+        self.url_label = Label(self.main_frame, text='请输入网站')
+        self.url_label.pack(side="top")
 
-        # 创建扫描结果标签
-        self.res_label = Label(root, text='扫描结果')
-        self.res_label.pack()
+        self.entry01 = Entry(self.main_frame, width=40)
+        self.entry01.pack(side="top", padx=10, pady=10)
 
-        # 创建按钮
-        self.bt01 = Button(root, text="端口扫描", width=10, command=self.scan_port)
-        self.bt01.pack(side="left", padx=10, pady=10)
+        # 按钮
+        self.button_frame = Frame(self.main_frame)
+        self.button_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
 
-        # 添加选项
-        self.var01 = IntVar()  # 用于保存Checkbutton的状态
-        self.checkbutton01 = Checkbutton(root, text='常用端口', variable=self.var01)
-        self.checkbutton01.pack(padx=10, pady=10, side='left')
+        self.bt01 = Button(self.button_frame, text="端口扫描", width=10, command=self.scan_port)
+        self.bt01.pack(side="top", padx=10, pady=10)
+
+        self.var01 = IntVar()
+        self.checkbutton01 = Checkbutton(self.button_frame, text='  常用端口', variable=self.var01)
+        self.checkbutton01.pack(padx=10, pady=10, side="top")
+
         self.var02 = IntVar()
-        self.checkbutton02 = Checkbutton(root, text='非常用端口', variable=self.var02)
-        self.checkbutton02.pack(padx=10, pady=10, side='left')
+        self.checkbutton02 = Checkbutton(self.button_frame, text='非常用端口', variable=self.var02)
+        self.checkbutton02.pack(padx=10, pady=10, side="top")
 
-        self.bt02 = Button(root, text="子域名扫描", width=10, command=self.scan_zym)
-        self.bt02.pack(side="left", padx=10, pady=10)
+        self.bt02 = Button(self.button_frame, text="子域名扫描", width=10, command=self.scan_zym)
+        self.bt02.pack(side="top", padx=10, pady=10)
 
-        self.bt03 = Button(root, text="api扫描", width=10, command=self.scan_api)
-        self.bt03.pack(side="left", padx=10, pady=10)
+        self.bt03 = Button(self.button_frame, text="api扫描", width=10, command=self.scan_api)
+        self.bt03.pack(side="top", padx=10, pady=10)
 
-        # 创建文本框和滚动条
-        self.text_frame = Frame(root)
-        self.text_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        self.bt04 = Button(self.button_frame, text="数据库识别", width=10, command=self.scan_database)
+        self.bt04.pack(side="top", padx=10, pady=10)
+
+        # 文本框和滚动条
+        self.text_frame = Frame(self.main_frame)
+        self.text_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
+
+        self.res_label = Label(self.text_frame, text='扫描结果')
+        self.res_label.pack(side="top")
 
         self.scrollbar = Scrollbar(self.text_frame)
         self.scrollbar.pack(side="right", fill="y")
@@ -66,6 +75,7 @@ class Application(Frame):
         self.result_queue_port = queue.Queue()
         self.result_queue_zym = queue.Queue()
         self.result_queue_api = queue.Queue()
+        self.result_queue_database = queue.Queue()
 
         # 端口扫描需要的数据
         # 常用端口
@@ -124,7 +134,7 @@ class Application(Frame):
         if self.var01.get() == 0 and self.var02.get() == 0:
             result_queue.put("请选择扫描选项！")
         else:
-            result_queue.put('[*] The scan is complete!')
+            result_queue.put('[portScan] The scan is complete!')
 
     def scan_port(self):
         t_scan = threading.Thread(target=self.portScan, args=(self.entry01.get(), self.result_queue_port))
@@ -154,7 +164,7 @@ class Application(Frame):
                 result_queue.put(url + ' -> ' + ip)
             except Exception as e:
                 pass
-        result_queue.put('[*] The scan is complete!')
+        result_queue.put('[zym_check] The scan is complete!')
 
     def scan_zym(self):
         t_scan = threading.Thread(target=self.zym_check, args=(self.entry01.get(), self.result_queue_zym))
@@ -190,7 +200,7 @@ class Application(Frame):
                         f.write(line.strip() + '\n')
             else:
                 status = '该网址不存在'
-        result_queue.put('[*] The scan is complete!')
+        result_queue.put('[api_check] The scan is complete!')
 
     def scan_api(self):
         t_scan = threading.Thread(target=self.api_check, args=(self.entry01.get(), self.result_queue_api))
@@ -204,6 +214,58 @@ class Application(Frame):
                     if not t_scan.is_alive():
                         break
                 else:
+                    self.w1.insert('end', result + '\n')
+
+        t_process = threading.Thread(target=process_result)
+        t_process.start()
+
+    # 扫描数据库模块
+    def database_check(self, url, result_queque):
+        # 解析网址
+        ext = database.tldextract.extract(url)
+        host = database.get_host(url)
+        result_queque.put("开始识别网站数据库！")
+        # 尝试连接到MySQL数据库
+        db_type = database.try_mysql(host, "root", "", ext.domain)
+        if db_type:
+            result_queque.put(f"The database type for {url} is {db_type}")
+            result_queque.put('[database_check] The scan is complete!')
+            return
+        # 尝试连接到PostgreSQL数据库
+        db_type = database.try_postgresql(host, "postgres", "", ext.domain)
+        if db_type:
+            result_queque.put(f"The database type for {url} is {db_type}")
+            result_queque.put('[database_check] The scan is complete!')
+            return
+        # 尝试连接到SQLite数据库
+        db_type = database.try_sqlite(host, "", "", ext.domain + ".db")
+        if db_type:
+            result_queque.put(f"The database type for {url} is {db_type}")
+            result_queque.put('[database_check] The scan is complete!')
+            return
+        # 尝试连接到Oracle数据库
+        db_type = database.try_oracle(host, "system", "oracle", "xe")
+        if db_type:
+            result_queque.put(f"The database type for {url} is {db_type}")
+            result_queque.put('[database_check] The scan is complete!')
+            return
+        # 返回未知类型
+        result_queque.put(f"The database type for {url} is Unknown")
+        result_queque.put('[database_check] The scan is complete!')
+
+    def scan_database(self):
+        t_scan = threading.Thread(target=self.database_check, args=(self.entry01.get(), self.result_queue_database))
+        t_scan.start()
+
+        def process_result():
+            while True:
+                try:
+                    result = self.result_queue_database.get(timeout=0.1)
+                except queue.Empty:
+                    if not t_scan.is_alive():
+                        break
+                else:
+
                     self.w1.insert('end', result + '\n')
 
         t_process = threading.Thread(target=process_result)
