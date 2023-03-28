@@ -35,6 +35,14 @@ class Application(Frame):
         self.bt01 = Button(root, text="端口扫描", width=10, command=self.scan_port)
         self.bt01.pack(side="left", padx=10, pady=10)
 
+        # 添加选项
+        self.var01 = IntVar()  # 用于保存Checkbutton的状态
+        self.checkbutton01 = Checkbutton(root, text='常用端口', variable=self.var01)
+        self.checkbutton01.pack(padx=10, pady=10, side='left')
+        self.var02 = IntVar()
+        self.checkbutton02 = Checkbutton(root, text='非常用端口', variable=self.var02)
+        self.checkbutton02.pack(padx=10, pady=10, side='left')
+
         self.bt02 = Button(root, text="子域名扫描", width=10, command=self.scan_zym)
         self.bt02.pack(side="left", padx=10, pady=10)
 
@@ -52,32 +60,6 @@ class Application(Frame):
         self.w1.pack(side="left", fill="both", expand=True)
 
         self.scrollbar.config(command=self.w1.yview)
-
-        # #网站标签
-        # self.label01=Label(self,text="网站:")
-        # self.label01.pack()
-
-        # 输入网站
-        # v1=StringVar()
-        # self.entry01=Entry(self,textvariable=v1)
-        # self.entry01.pack()
-
-        # 输出框
-        # self.w1=Text(root,width=80,height=24)
-        # self.w1.pack()
-
-        # 扫描网站按钮
-        # self.bt01=Button(self,text="扫描网站端口",command=self.scan_port)
-        # self.bt01.pack()
-
-        # 扫描子域名按钮
-        # self.bt02=Button(self,text="扫描子域名",command=self.scan_zym)
-        # self.bt02.pack()
-
-        # 扫描api按钮
-
-        # self.bt03=Button(self,text="扫描api",command=self.scan_api)
-        # self.bt03.pack()
 
     def creatdata(self):
         # 扫描结果队列
@@ -109,20 +91,40 @@ class Application(Frame):
     def portScan(self, url, result_queue):
         self.q = queue.Queue()
         self.ip = url
-        for port in self.PORT_1.keys():
-            self.q.put(port)  # 队尾插入
-        while not self.q.empty():
-            port = self.q.get()
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(1)
-            try:
-                s.connect((self.ip, port))
-                result_queue.put("%s:%s open [%s]" % (self.ip, port, self.PORT_1[port]))
-            except:
-                result_queue.put("%s:%s Close" % (self.ip, port))
-            finally:
-                s.close()
-        result_queue.put('[*] The scan is complete!')
+        if self.var01.get() == 1:
+            result_queue.put("开始扫描常用端口！")
+            for port in self.PORT_1.keys():
+                self.q.put(port)  # 队尾插入
+            while not self.q.empty():
+                port = self.q.get()
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(1)
+                try:
+                    s.connect((self.ip, port))
+                    result_queue.put("%s:%s open [%s]" % (self.ip, port, self.PORT_1[port]))
+                except:
+                    result_queue.put("%s:%s Close" % (self.ip, port))
+                finally:
+                    s.close()
+        if self.var02.get() == 1:
+            result_queue.put("开始扫描非常用端口！")
+            for port in self.PORT_2.keys():
+                self.q.put(port)  # 队尾插入
+            while not self.q.empty():
+                port = self.q.get()
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(1)
+                try:
+                    s.connect((self.ip, port))
+                    result_queue.put("%s:%s open [%s]" % (self.ip, port, self.PORT_2[port]))
+                except:
+                    result_queue.put("%s:%s Close" % (self.ip, port))
+                finally:
+                    s.close()
+        if self.var01.get() == 0 and self.var02.get() == 0:
+            result_queue.put("请选择扫描选项！")
+        else:
+            result_queue.put('[*] The scan is complete!')
 
     def scan_port(self):
         t_scan = threading.Thread(target=self.portScan, args=(self.entry01.get(), self.result_queue_port))
@@ -215,12 +217,7 @@ def on_closing():
 
 if __name__ == '__main__':
     root = Tk()
-    # root.geometry("800x2400+300+300")
     root.title("信息收集")
     app = Application(master=root)
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
-
-
-
-
