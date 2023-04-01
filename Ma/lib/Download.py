@@ -9,7 +9,7 @@ class Download(object):
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code != 200:
             return None
-        _str = r.content.decode('utf-8')
+        _str = r.text
         return _str
 
     def post(self, url, data):
@@ -33,7 +33,7 @@ class Download(object):
             r = requests.get(url, headers=headers, timeout=10)
             if r.status_code != 200:
                 return None
-            _str["html"] = r.content.decode('utf-8')
+            _str["html"] = r.text
         except Exception as e:
             return None
         htmls.append(_str)

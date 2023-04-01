@@ -31,7 +31,7 @@ class Application(Frame):
         self.url_label = Label(self.main_frame, text='请输入网站')
         self.url_label.pack(side="top")
 
-        self.entry01 = Entry(self.main_frame, width=40)
+        self.entry01 = Entry(self.main_frame, width=60)
         self.entry01.pack(side="top", padx=10, pady=10)
 
         # 按钮

@@ -4,8 +4,11 @@ import lib.Download as Download
 
 class spider:
     def run(self, url,result_queue):
-        if (not url.find("?")):
-            result_queue.put("False")
+        if not url.startswith("http://"):
+            url = "http://"+url
+        if (url.find("?")==-1):
+            result_queue.put("扫描失败！")
+            result_queue.put("请输入类似的url:http://www.example.com/index.php?id=1")
             return False
         Downloader = Download.Download()
         BOOLEAN_TESTS = (" AND %d=%d", " OR NOT (%d=%d)")
