@@ -9,7 +9,7 @@ import lib.api as api
 import lib.zym as zym
 import lib.port as port
 import lib.webcms as webcms
-
+import lib.email_check as email
 
 class Application(Frame):
     def __init__(self, master=None):
@@ -62,6 +62,9 @@ class Application(Frame):
 
         self.bt06 = Button(self.button_frame,text="webcms识别",width=10,command=self.scan_webcms)
         self.bt06.pack(side="top", padx=10, pady=10)
+
+        self.bt07 = Button(self.button_frame,text="email识别",width=10,command=self.scan_email)
+        self.bt07.pack(side="top", padx=10, pady=10)
         # 文本框和滚动条
         self.text_frame = Frame(self.main_frame)
         self.text_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
@@ -85,6 +88,7 @@ class Application(Frame):
         self.result_queue_database = queue.Queue()
         self.result_queue_server = queue.Queue()
         self.result_queue_webcms = queue.Queue()
+        self.result_queue_email = queue.Queue()
     #各模块的启动函数
     def start_scan(self,t_scan,result_queue):
         t_scan.start()
@@ -123,7 +127,10 @@ class Application(Frame):
     def scan_webcms(self):
         self.t_webcms=threading.Thread(target=webcms.cmscheck, args=(self.entry01.get(), self.result_queue_webcms))
         self.start_scan(self.t_webcms,self.result_queue_webcms)
-
+    #扫描网站email
+    def scan_email(self):
+        self.t_email=threading.Thread(target=email.email_check,args=(self.entry01.get(), self.result_queue_email))
+        self.start_scan(self.t_email,self.result_queue_email)
 
 
 if __name__ == '__main__':
