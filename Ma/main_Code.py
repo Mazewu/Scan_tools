@@ -8,6 +8,8 @@ import lib.server as server
 import lib.api as api
 import lib.zym as zym
 import lib.port as port
+import lib.webcms as webcms
+
 
 class Application(Frame):
     def __init__(self, master=None):
@@ -58,6 +60,8 @@ class Application(Frame):
         self.bt05 = Button(self.button_frame, text="服务器识别", width=10, command=self.scan_server)
         self.bt05.pack(side="top", padx=10, pady=10)
 
+        self.bt06 = Button(self.button_frame,text="webcms识别",width=10,command=self.scan_webcms)
+        self.bt06.pack(side="top", padx=10, pady=10)
         # 文本框和滚动条
         self.text_frame = Frame(self.main_frame)
         self.text_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
@@ -79,8 +83,8 @@ class Application(Frame):
         self.result_queue_zym = queue.Queue()
         self.result_queue_api = queue.Queue()
         self.result_queue_database = queue.Queue()
-        self.result_queque_server = queue.Queue()
-
+        self.result_queue_server = queue.Queue()
+        self.result_queue_webcms = queue.Queue()
     #各模块的启动函数
     def start_scan(self,t_scan,result_queue):
         t_scan.start()
@@ -113,8 +117,13 @@ class Application(Frame):
         self.start_scan(self.t_database,self.result_queue_database)
     #扫描服务器框架
     def scan_server(self):
-        self.t_server=threading.Thread(target=server.server_check, args=(self.entry01.get(), self.result_queque_server))
-        self.start_scan(self.t_server,self.result_queque_server)
+        self.t_server=threading.Thread(target=server.server_check, args=(self.entry01.get(), self.result_queue_server))
+        self.start_scan(self.t_server,self.result_queue_server)
+    #扫描网站cms
+    def scan_webcms(self):
+        self.t_webcms=threading.Thread(target=webcms.cmscheck, args=(self.entry01.get(), self.result_queue_webcms))
+        self.start_scan(self.t_webcms,self.result_queue_webcms)
+
 
 
 if __name__ == '__main__':
