@@ -40,5 +40,6 @@ class Download(object):
 
 if __name__=="__main__":
     t= Download()
-    html=t.get("https://www.zhihu.com/question/553741419/answer/2676465629")
+    html=t.get("https://movie.douban.com/top250?start=0&filter=")
+    print(html)
 

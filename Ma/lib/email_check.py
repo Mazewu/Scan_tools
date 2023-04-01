@@ -8,7 +8,7 @@ def email_check(url,result_queue):
         url = "http://"+url
     html=Downloader.get(url)
     pattern = re.compile(r'([\w-]+@[\w-]+\.[\w-]+)+')
-    email_list = re.findall(pattern, html)
+    email_list = re.findall(pattern, str(html))
     if email_list:
         for email in email_list:
             result_queue.put(("email:"+ email))
