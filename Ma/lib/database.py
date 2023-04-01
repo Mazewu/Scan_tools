@@ -1,5 +1,4 @@
 import tldextract
-import socket
 import urllib.parse
 import pymysql
 import psycopg2
@@ -44,37 +43,38 @@ def try_oracle(host, user, password, database):
     except:
         pass
 
-# 根据网址获取数据库信息
-def identify_database(url):
+# 扫描数据库模块
+def database_check(url, result_queque):
     # 解析网址
     ext = tldextract.extract(url)
     host = get_host(url)
-
+    result_queque.put("开始识别网站数据库...")
     # 尝试连接到MySQL数据库
     db_type = try_mysql(host, "root", "", ext.domain)
     if db_type:
-        return db_type
-
+        result_queque.put(f"The database type for {url} is {db_type}")
+        result_queque.put('[database_check] The scan is complete!')
+        return
     # 尝试连接到PostgreSQL数据库
     db_type = try_postgresql(host, "postgres", "", ext.domain)
     if db_type:
-        return db_type
-
+        result_queque.put(f"The database type for {url} is {db_type}")
+        result_queque.put('[database_check] The scan is complete!')
+        return
     # 尝试连接到SQLite数据库
     db_type = try_sqlite(host, "", "", ext.domain + ".db")
     if db_type:
-        return db_type
-
+        result_queque.put(f"The database type for {url} is {db_type}")
+        result_queque.put('[database_check] The scan is complete!')
+        return
     # 尝试连接到Oracle数据库
     db_type = try_oracle(host, "system", "oracle", "xe")
     if db_type:
-        return db_type
-
+        result_queque.put(f"The database type for {url} is {db_type}")
+        result_queque.put('[database_check] The scan is complete!')
+        return
     # 返回未知类型
-    return "Unknown"
+    result_queque.put(f"The database type for {url} is Unknown")
+    result_queque.put('[database_check] The scan is complete!')
 
-# 测试程序
-if __name__ == "__main__":
-    url = "www.sian.com"
-    db_type = identify_database(url)
-    print(f"The database type for {url} is {db_type}")
+

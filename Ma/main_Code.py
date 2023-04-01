@@ -1,23 +1,21 @@
 from __future__ import unicode_literals
 import queue
-import socket
-import sys
 import threading
-import requests
 from tkinter import *
-from tkinter import messagebox
 
-import urllib.request
-import database
-
+import lib.database as database
+import lib.server as server
+import lib.api as api
+import lib.zym as zym
+import lib.port as port
 
 class Application(Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
         self.pack()
-        self.creatdata()
         self.creatWidget()
+        self.creatdata()
 
     # 创建窗口
     def creatWidget(self):
@@ -76,244 +74,51 @@ class Application(Frame):
         self.scrollbar.config(command=self.w1.yview)
 
     def creatdata(self):
-        # 扫描结果队列
+        # 存放扫描结果的队列
         self.result_queue_port = queue.Queue()
         self.result_queue_zym = queue.Queue()
         self.result_queue_api = queue.Queue()
         self.result_queue_database = queue.Queue()
         self.result_queque_server = queue.Queue()
-        # 端口扫描需要的数据
-        # 常用端口
-        self.PORT_1 = {80: "HTTP", 443: "HTTPS", 21: "FTP", 22: "SSH", 23: "TELNET", 25: "SMTP", 110: "POP3",
-                       143: "IMAP",
-                       53: "DNS", 161: "SNMP", 162: "SNMP Trap", 389: "LDAP", 445: "Microsoft-DS", 548: "AFP",
-                       1080: "SOCKS", 1433: "Microsoft SQL Server", 1521: "Oracle", 3306: "MySQL", 5432: "PostgreSQL",
-                       5900: "VNC", 3389: "RDP", 8000: "HTTP Alternate", 8080: "HTTP Alternate",
-                       8443: "HTTPS Alternate",
-                       8888: "HTTP Alternate", 9090: "HTTP Alternate"}
-        # 非常用端口
-        self.PORT_2 = {17: "Quote of the Day", 79: "Finger", 873: "rsync", 1194: "OpenVPN",
-                       1434: "Microsoft SQL Monitor", 1701: "L2TP",
-                       1812: "RADIUS", 1813: "RADIUS Accounting", 2222: "DirectAdmin", 3000: "Ruby on Rails",
-                       3306: "MySQL Remote Administration", 3689: "iTunes", 5000: "UPnP", 5001: "UPnP Secure",
-                       5432: "PostgreSQL", 5901: "VNC Remote Desktop", 8000: "iRDMI", 8081: "HTTP Alternate",
-                       9000: "Joomla Remote Administration", 9418: "Git", 9999: "URD - Remote Desktop",
-                       27017: "MongoDB",
-                       27018: "MongoDB", 28017: "MongoDB HTTP Interface", 49152: "Reserved", 49153: "Reserved",
-                       49154: "Reserved", 49155: "Reserved", 49156: "Reserved", 49157: "Reserved"}
 
-    # 扫描端口模块
-    def portScan(self, url, result_queue):
-        self.q = queue.Queue()
-        self.ip = url
-        if self.var01.get() == 1:
-            result_queue.put("开始扫描常用端口...")
-            for port in self.PORT_1.keys():
-                self.q.put(port)  # 队尾插入
-            while not self.q.empty():
-                port = self.q.get()
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(1)
+    #各模块的启动函数
+    def start_scan(self,t_scan,result_queue):
+        t_scan.start()
+        def process_result():
+            while True:
                 try:
-                    s.connect((self.ip, port))
-                    result_queue.put("%s:%s open [%s]" % (self.ip, port, self.PORT_1[port]))
-                except:
-                    result_queue.put("%s:%s Close" % (self.ip, port))
-                finally:
-                    s.close()
-        if self.var02.get() == 1:
-            result_queue.put("开始扫描非常用端口...")
-            for port in self.PORT_2.keys():
-                self.q.put(port)  # 队尾插入
-            while not self.q.empty():
-                port = self.q.get()
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(1)
-                try:
-                    s.connect((self.ip, port))
-                    result_queue.put("%s:%s open [%s]" % (self.ip, port, self.PORT_2[port]))
-                except:
-                    result_queue.put("%s:%s Close" % (self.ip, port))
-                finally:
-                    s.close()
-        if self.var01.get() == 0 and self.var02.get() == 0:
-            result_queue.put("请选择扫描选项！")
-        else:
-            result_queue.put('[portScan] The scan is complete!')
-
+                    result = result_queue.get(timeout=0.1)
+                except queue.Empty:
+                    if not t_scan.is_alive():
+                        break
+                else:
+                    self.w1.insert('end', result + '\n')
+        t_process = threading.Thread(target=process_result)
+        t_process.start()
+    #扫描端口
     def scan_port(self):
-        t_scan = threading.Thread(target=self.portScan, args=(self.entry01.get(), self.result_queue_port))
-        t_scan.start()
-
-        def process_result():
-            while True:
-                try:
-                    result = self.result_queue_port.get(timeout=0.1)
-                except queue.Empty:
-                    if not t_scan.is_alive():
-                        break
-                else:
-                    self.w1.insert('end', result + '\n')
-
-        t_process = threading.Thread(target=process_result)
-        t_process.start()
-
-    # 扫描子域名模块
-    def zym_check(self, url, result_queue):
-        result_queue.put('开始扫描网站子域名...')
-        urls = url.replace('www', '')
-        for zym_data in open("Ma/sub11.txt", encoding='utf-8'):
-            zym_data = zym_data.replace('\n', '')
-            url = zym_data + urls
-            try:
-                ip = socket.gethostbyname(url)
-                result_queue.put(url + ' -> ' + ip)
-            except Exception as e:
-                pass
-        result_queue.put('[zym_check] The scan is complete!')
-
+        self.t_port=threading.Thread(target=port.portScan, args=(self.var01.get(),self.var02.get(),self.entry01.get(), self.result_queue_port))
+        self.start_scan(self.t_port,self.result_queue_port)
+    #扫描子域名
     def scan_zym(self):
-        t_scan = threading.Thread(target=self.zym_check, args=(self.entry01.get(), self.result_queue_zym))
-        t_scan.start()
-
-        def process_result():
-            while True:
-                try:
-                    result = self.result_queue_zym.get(timeout=0.1)
-                except queue.Empty:
-                    if not t_scan.is_alive():
-                        break
-                else:
-                    self.w1.insert('end', result + '\n')
-
-        t_process = threading.Thread(target=process_result)
-        t_process.start()
-
-    # 扫描api模块
-    def api_check(self, url, result_queue):
-        result_queue.put('开始扫描网站api模块...')
-        api_list = []
-        for api_data in open(r'Ma/api.txt', encoding='utf-8'):
-            api_data = api_data.replace('\n', '')
-            Url = self.entry01.get()
-            url = 'https://' + Url + api_data
-            api_list.append(url)
-            r = requests.get(url)
-            if r.status_code == 200:
-                status = '该网址存在'
-                result_queue.put(url + ' ' + status)
-                with open('Ma/api9.csv', 'w', encoding='gbk') as f:
-                    for line in api_list:
-                        f.write(line.strip() + '\n')
-            else:
-                status = '该网址不存在'
-        result_queue.put('[api_check] The scan is complete!')
-
+        self.t_zym = threading.Thread(target=zym.zym_check, args=(self.entry01.get(), self.result_queue_zym))
+        self.start_scan(self.t_zym,self.result_queue_zym)
+    #扫描api
     def scan_api(self):
-        t_scan = threading.Thread(target=self.api_check, args=(self.entry01.get(), self.result_queue_api))
-        t_scan.start()
-
-        def process_result():
-            while True:
-                try:
-                    result = self.result_queue_api.get(timeout=0.1)
-                except queue.Empty:
-                    if not t_scan.is_alive():
-                        break
-                else:
-                    self.w1.insert('end', result + '\n')
-
-        t_process = threading.Thread(target=process_result)
-        t_process.start()
-
-    # 扫描数据库模块
-    def database_check(self, url, result_queque):
-        # 解析网址
-        ext = database.tldextract.extract(url)
-        host = database.get_host(url)
-        result_queque.put("开始识别网站数据库...")
-        # 尝试连接到MySQL数据库
-        db_type = database.try_mysql(host, "root", "", ext.domain)
-        if db_type:
-            result_queque.put(f"The database type for {url} is {db_type}")
-            result_queque.put('[database_check] The scan is complete!')
-            return
-        # 尝试连接到PostgreSQL数据库
-        db_type = database.try_postgresql(host, "postgres", "", ext.domain)
-        if db_type:
-            result_queque.put(f"The database type for {url} is {db_type}")
-            result_queque.put('[database_check] The scan is complete!')
-            return
-        # 尝试连接到SQLite数据库
-        db_type = database.try_sqlite(host, "", "", ext.domain + ".db")
-        if db_type:
-            result_queque.put(f"The database type for {url} is {db_type}")
-            result_queque.put('[database_check] The scan is complete!')
-            return
-        # 尝试连接到Oracle数据库
-        db_type = database.try_oracle(host, "system", "oracle", "xe")
-        if db_type:
-            result_queque.put(f"The database type for {url} is {db_type}")
-            result_queque.put('[database_check] The scan is complete!')
-            return
-        # 返回未知类型
-        result_queque.put(f"The database type for {url} is Unknown")
-        result_queque.put('[database_check] The scan is complete!')
-
+        self.t_api=threading.Thread(target=api.api_check, args=(self.entry01.get(), self.result_queue_api))
+        self.start_scan(self.t_api,self.result_queue_api)
+    #扫描数据库
     def scan_database(self):
-        t_scan = threading.Thread(target=self.database_check, args=(self.entry01.get(), self.result_queue_database))
-        t_scan.start()
-
-        def process_result():
-            while True:
-                try:
-                    result = self.result_queue_database.get(timeout=0.1)
-                except queue.Empty:
-                    if not t_scan.is_alive():
-                        break
-                else:
-
-                    self.w1.insert('end', result + '\n')
-
-        t_process = threading.Thread(target=process_result)
-        t_process.start()
-
-    # 扫描网站服务器模块
-    def server_check(self, url, result_queque):
-        result_queque.put(f"开始识别网站server...")
-        if not url.startswith("http"):
-            url = "http://" + url
-        file = urllib.request.urlopen(url)
-        result_queque.put(f"网站server 为：{file.info()['Server']}")
-        result_queque.put(f"网站server识别完毕！")
-
+        self.t_database=threading.Thread(target=database.database_check, args=(self.entry01.get(), self.result_queue_database))
+        self.start_scan(self.t_database,self.result_queue_database)
+    #扫描服务器框架
     def scan_server(self):
-        t_scan = threading.Thread(target=self.server_check, args=(self.entry01.get(), self.result_queque_server))
-        t_scan.start()
-
-        def process_result():
-            while True:
-                try:
-                    result = self.result_queque_server.get(timeout=0.1)
-                except queue.Empty:
-                    if not t_scan.is_alive():
-                        break
-                else:
-
-                    self.w1.insert('end', result + '\n')
-
-        t_process = threading.Thread(target=process_result)
-        t_process.start()
-
-
-def on_closing():
-    root.destroy()
-    sys.exit()
+        self.t_server=threading.Thread(target=server.server_check, args=(self.entry01.get(), self.result_queque_server))
+        self.start_scan(self.t_server,self.result_queque_server)
 
 
 if __name__ == '__main__':
     root = Tk()
     root.title("信息收集")
     app = Application(master=root)
-    root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
