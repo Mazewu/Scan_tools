@@ -14,8 +14,6 @@ Ma文件夹内为本人代码,为适应图形化，修改了其他同学部分�
 
 运行时以Ma文件夹为根目录可避免文件路径错误！
 
-
-
 图形化展示:
 
-![Screenshot 2023-04-02 230018](images\Screenshot 2023-04-02 230018.png)
+<img src="images/1.png" width="800" height="600" align="middle" />
