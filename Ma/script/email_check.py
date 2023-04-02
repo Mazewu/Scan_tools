@@ -5,7 +5,7 @@ class spider():
         email_list = re.findall(pattern, html)
         if email_list:
             for email in email_list:
-                result_queue.put(email)
+                result_queue.put(("email:"+ email))
                 print(email)
             return True
         return False
