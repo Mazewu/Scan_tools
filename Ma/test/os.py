@@ -4,7 +4,6 @@ import sys
 absolute_path = os.path.abspath(__file__)
 
 
-print(absolute_path)
-print(sys.path[0])
-filename = os.path.abspath(os.path.dirname(__file__))+r'\..\data\data.json'
+filename = os.path.join(sys.path[0], "data", "dir.txt")
 print(filename)
+print(os.getcwd())

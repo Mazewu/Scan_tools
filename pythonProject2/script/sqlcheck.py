@@ -1,14 +1,10 @@
-import re, random,queue
-import lib.Download as Download
+import re, random
+from lib.core import Download
 
 
 class spider:
-    def run(self, url,result_queue):
-        if not url.startswith("http://"):
-            url = "http://"+url
-        if (url.find("?")==-1):
-            result_queue.put("扫描失败！")
-            result_queue.put("请输入类似的url:http://www.example.com/index.php?id=1")
+    def run(self, url, html):
+        if (not url.find("?")):
             return False
         Downloader = Download.Download()
         BOOLEAN_TESTS = (" AND %d=%d", " OR NOT (%d=%d)")
@@ -31,8 +27,7 @@ class spider:
         _url = url + "%29%28%22%27"
         _content = Downloader.get(_url)
         for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
-            if re.search(regex, str(_content)):
-                result_queue.put("True")
+            if re.search(regex, _content):
                 return True
         content = {"origin": Downloader.get(_url)}
         for test_payload in BOOLEAN_TESTS:
@@ -42,10 +37,4 @@ class spider:
             _url = url + test_payload % (RANDINT, RANDINT + 1)
             content["false"] = Downloader.get(_url)
             if content["origin"] == content["true"] != content["false"]:
-                result_queue.put("sql fonud: %" % url)
                 return "sql fonud: %" % url
-        result_queue.put("None")
-def sql_check(url,result_queue):
-    result_queue.put("开始扫描sql漏洞...")
-    t = spider()
-    t.run(url,result_queue)

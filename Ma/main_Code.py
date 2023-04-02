@@ -11,7 +11,8 @@ import lib.port as port
 import lib.webcms as webcms
 import lib.email_check as email
 import lib.sql_check as sql
-
+import lib.craw as craw
+import lib.webdir as webdir
 class Application(Frame):
     def __init__(self, master=None):
         super().__init__(master)
@@ -64,11 +65,17 @@ class Application(Frame):
         self.bt06 = Button(self.button_frame,text="webcms识别",width=10,command=self.scan_webcms)
         self.bt06.pack(side="top", padx=10, pady=10)
 
-        self.bt07 = Button(self.button_frame,text="email识别",width=10,command=self.scan_email)
-        self.bt07.pack(side="top", padx=10, pady=10)
+        # self.bt07 = Button(self.button_frame,text="email识别",width=10,command=self.scan_email)
+        # self.bt07.pack(side="top", padx=10, pady=10)
 
         self.bt08 = Button(self.button_frame,text="sql漏洞扫描",width=10,command=self.scan_sql)
         self.bt08.pack(side="top", padx=10, pady=10)
+
+        self.bt09 = Button(self.button_frame,text="URL备份&邮箱",width=10,command=self.scan_url)
+        self.bt09.pack(side="top", padx=10, pady=10)
+
+        self.bt10 = Button(self.button_frame,text="webdir扫描",width=10,command=self.scan_webdir)
+        self.bt10.pack(side="top", padx=10, pady=10)
         # 文本框和滚动条
         self.text_frame = Frame(self.main_frame)
         self.text_frame.pack(side="left", padx=10, pady=10, fill="both", expand=True)
@@ -83,6 +90,7 @@ class Application(Frame):
         self.w1.pack(side="left", fill="both", expand=True)
 
         self.scrollbar.config(command=self.w1.yview)
+        
 
     def creatdata(self):
         # 存放扫描结果的队列
@@ -92,8 +100,10 @@ class Application(Frame):
         self.result_queue_database = queue.Queue()
         self.result_queue_server = queue.Queue()
         self.result_queue_webcms = queue.Queue()
-        self.result_queue_email = queue.Queue()
+        # self.result_queue_email = queue.Queue()
         self.result_queue_sql = queue.Queue()
+        self.result_queue_url=queue.Queue()
+        self.result_queue_webdir=queue.Queue()
     #各模块的启动函数
     def start_scan(self,t_scan,result_queue):
         t_scan.start()
@@ -132,15 +142,22 @@ class Application(Frame):
     def scan_webcms(self):
         self.t_webcms=threading.Thread(target=webcms.cmscheck, args=(self.entry01.get(), self.result_queue_webcms))
         self.start_scan(self.t_webcms,self.result_queue_webcms)
-    #扫描网站email
-    def scan_email(self):
-        self.t_email=threading.Thread(target=email.email_check,args=(self.entry01.get(), self.result_queue_email))
-        self.start_scan(self.t_email,self.result_queue_email)
+    # #扫描网站email
+    # def scan_email(self):
+    #     self.t_email=threading.Thread(target=email.email_check,args=(self.entry01.get(), self.result_queue_email))
+    #     self.start_scan(self.t_email,self.result_queue_email)
     #扫描网站是否含有sql漏洞
     def scan_sql(self):
         self.t_sql=threading.Thread(target=sql.sql_check,args=(self.entry01.get(), self.result_queue_sql))
         self.start_scan(self.t_sql,self.result_queue_sql)
-
+    #扫描网页中存在的链接
+    def scan_url(self):
+        self.t_url=threading.Thread(target=craw.url_scan,args=(self.entry01.get(), self.result_queue_url))
+        self.start_scan(self.t_url,self.result_queue_url)
+    #扫描webdir
+    def scan_webdir(self):
+        self.t_webdir=threading.Thread(target=webdir.scan_webdir,args=(self.entry01.get(), self.result_queue_url))
+        self.start_scan(self.t_webdir,self.result_queue_url)
 if __name__ == '__main__':
     root = Tk()
     root.title("信息收集")
