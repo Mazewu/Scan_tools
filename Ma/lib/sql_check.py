@@ -32,7 +32,7 @@ class spider:
         _content = Downloader.get(_url)
         for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
             if re.search(regex, str(_content)):
-                result_queue.put("True")
+                result_queue.put("sql fonud")
                 return True
         content = {"origin": Downloader.get(_url)}
         for test_payload in BOOLEAN_TESTS:
@@ -44,7 +44,7 @@ class spider:
             if content["origin"] == content["true"] != content["false"]:
                 result_queue.put("sql fonud: %" % url)
                 return "sql fonud: %" % url
-        result_queue.put("None")
+        result_queue.put("sql not fonud")
 def sql_check(url,result_queue):
     result_queue.put("开始扫描sql漏洞...")
     t = spider()

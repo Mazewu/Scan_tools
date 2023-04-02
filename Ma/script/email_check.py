@@ -1,7 +1,7 @@
 import re
 class spider():
     def run(self, url, html,result_queue):
-        pattern = re.compile(r'([\w-]+@[\w-]+\.[\w-]+)+')
+        pattern = re.compile(r'([\w-]+@[\w-]+\.com+)+')
         email_list = re.findall(pattern, html)
         if email_list:
             for email in email_list:

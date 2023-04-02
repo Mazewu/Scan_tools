@@ -7,7 +7,7 @@ def email_check(url,result_queue):
     if not url.startswith("http://"):
         url = "http://"+url
     html=Downloader.get(url)
-    pattern = re.compile(r'([\w-]+@[\w-]+\.[\w-]+)+')
+    pattern = re.compile(r'([\w-]+@[\w-]+\.com+)+')
     email_list = re.findall(pattern, str(html))
     if email_list:
         for email in email_list:
